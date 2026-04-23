@@ -45,25 +45,61 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    let mounted = true;
+
+    // IMPORTANT: keep this callback synchronous to avoid Supabase auth deadlocks.
+    // Defer any Supabase calls (like fetching the business) with setTimeout.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!mounted) return;
       if (session?.user) {
-        const authUser = await buildAuthUser(session.user);
-        setUser(authUser);
+        const supaUser = session.user;
+        // Set a minimal user immediately so the UI can render
+        setUser({
+          id: supaUser.id,
+          email: supaUser.email ?? '',
+          full_name: supaUser.user_metadata?.full_name ?? '',
+          business_id: null,
+        });
+        setIsLoading(false);
+        // Defer the business lookup to avoid deadlocking the auth callback
+        setTimeout(() => {
+          buildAuthUser(supaUser)
+            .then((authUser) => { if (mounted) setUser(authUser); })
+            .catch((err) => console.error('buildAuthUser failed', err));
+        }, 0);
       } else {
         setUser(null);
+        setIsLoading(false);
       }
-      setIsLoading(false);
     });
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    // Initial session check
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!mounted) return;
       if (session?.user) {
-        const authUser = await buildAuthUser(session.user);
-        setUser(authUser);
+        const supaUser = session.user;
+        setUser({
+          id: supaUser.id,
+          email: supaUser.email ?? '',
+          full_name: supaUser.user_metadata?.full_name ?? '',
+          business_id: null,
+        });
+        setIsLoading(false);
+        buildAuthUser(supaUser)
+          .then((authUser) => { if (mounted) setUser(authUser); })
+          .catch((err) => console.error('buildAuthUser failed', err));
+      } else {
+        setIsLoading(false);
       }
-      setIsLoading(false);
+    }).catch((err) => {
+      console.error('getSession failed', err);
+      if (mounted) setIsLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const login = async (email: string, password: string) => {
