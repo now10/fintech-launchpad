@@ -1,7 +1,9 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useIsAdmin } from '@/hooks/useAdmin';
 import {
-  LayoutDashboard, Users, FileText, CreditCard, Wallet, Building2, LogOut, Zap, ChevronLeft, ChevronRight,
+  LayoutDashboard, Users, FileText, CreditCard, Wallet, Building2, LogOut, Zap,
+  ChevronLeft, ChevronRight, ScrollText, Settings, Repeat, Shield, ArrowUpRight,
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -10,10 +12,13 @@ const navItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
   { label: 'Customers', icon: Users, path: '/customers' },
   { label: 'Mandates', icon: FileText, path: '/mandates' },
+  { label: 'Subscriptions', icon: Repeat, path: '/plans' },
   { label: 'Payments', icon: CreditCard, path: '/payments' },
+  { label: 'Ledger', icon: ScrollText, path: '/ledger' },
   { label: 'Wallet', icon: Wallet, path: '/wallet' },
   { label: 'Bank Accounts', icon: Building2, path: '/bank-accounts' },
-  { label: 'Payouts', icon: CreditCard, path: '/payouts' },
+  { label: 'Payouts', icon: ArrowUpRight, path: '/payouts' },
+  { label: 'Settings', icon: Settings, path: '/settings' },
 ];
 
 const AppSidebar = () => {
