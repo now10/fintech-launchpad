@@ -6,3 +6,11 @@ verify_jwt = false
 
 [functions.gocardless-webhook]
 verify_jwt = false
+
+# Public customer-facing mandate authorization (no auth required).
+[functions.public-mandate]
+verify_jwt = false
+
+# OAuth redirect handler — called by GoCardless without a user JWT.
+[functions.gocardless-oauth]
+verify_jwt = false
