@@ -93,46 +93,77 @@ const MandatesPage = () => {
           <h1 className="text-2xl font-bold text-foreground">Mandates</h1>
           <p className="text-sm text-muted-foreground mt-1">SEPA & ACH Direct Debit mandates</p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm"><Plus className="w-4 h-4 mr-2" />Create Mandate</Button>
-          </DialogTrigger>
-          <DialogContent className="glass-card border-border">
-            <DialogHeader><DialogTitle>Create Direct Debit Mandate</DialogTitle></DialogHeader>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>Customer</Label>
-                <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
-                  <SelectTrigger className="bg-muted border-border"><SelectValue placeholder="Select customer" /></SelectTrigger>
-                  <SelectContent>
-                    {(customers ?? []).map((c: any) => (
-                      <SelectItem key={c.id} value={c.id}>{c.name} – {c.email}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+        <div className="flex gap-2">
+          <Dialog open={linkOpen} onOpenChange={(v) => { setLinkOpen(v); if (!v) { setGeneratedLink(null); setLinkEmail(''); setLinkName(''); } }}>
+            <DialogTrigger asChild>
+              <Button size="sm" variant="outline"><Link2 className="w-4 h-4 mr-2" />Send Auth Link</Button>
+            </DialogTrigger>
+            <DialogContent className="glass-card border-border">
+              <DialogHeader><DialogTitle>Generate customer authorization link</DialogTitle></DialogHeader>
+              {generatedLink ? (
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground">Share this link with your customer. They can authorize without an account. Expires in 7 days.</p>
+                  <div className="flex gap-2">
+                    <Input readOnly value={generatedLink} className="bg-muted border-border font-mono text-xs" />
+                    <Button size="sm" onClick={handleCopy}>{copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}</Button>
+                  </div>
+                </div>
+              ) : (
+                <form className="space-y-4" onSubmit={handleGenerateLink}>
+                  <div className="space-y-2"><Label>Customer name</Label><Input value={linkName} onChange={e => setLinkName(e.target.value)} required className="bg-muted border-border" /></div>
+                  <div className="space-y-2"><Label>Customer email</Label><Input type="email" value={linkEmail} onChange={e => setLinkEmail(e.target.value)} required className="bg-muted border-border" /></div>
+                  <div className="space-y-2">
+                    <Label>Scheme</Label>
+                    <Select value={scheme} onValueChange={setScheme}>
+                      <SelectTrigger className="bg-muted border-border"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="sepa_core">SEPA Core (EUR)</SelectItem>
+                        <SelectItem value="ach">ACH (USD)</SelectItem>
+                        <SelectItem value="bacs">BACS (GBP)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button className="w-full" disabled={createLink.isPending}>{createLink.isPending ? 'Generating...' : 'Generate link'}</Button>
+                </form>
+              )}
+            </DialogContent>
+          </Dialog>
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm"><Plus className="w-4 h-4 mr-2" />Create Mandate</Button>
+            </DialogTrigger>
+            <DialogContent className="glass-card border-border">
+              <DialogHeader><DialogTitle>Create Direct Debit Mandate</DialogTitle></DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Customer</Label>
+                  <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
+                    <SelectTrigger className="bg-muted border-border"><SelectValue placeholder="Select customer" /></SelectTrigger>
+                    <SelectContent>
+                      {(customers ?? []).map((c: any) => (
+                        <SelectItem key={c.id} value={c.id}>{c.name} – {c.email}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Scheme</Label>
+                  <Select value={scheme} onValueChange={setScheme}>
+                    <SelectTrigger className="bg-muted border-border"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="sepa_core">SEPA Core (EUR)</SelectItem>
+                      <SelectItem value="ach">ACH Transfer (USD)</SelectItem>
+                      <SelectItem value="bacs">BACS (GBP)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button className="w-full" onClick={handleCreate} disabled={createMandate.isPending}>
+                  {createMandate.isPending ? 'Creating...' : 'Create Mandate'}
+                </Button>
               </div>
-              <div className="space-y-2">
-                <Label>Scheme</Label>
-                <Select value={scheme} onValueChange={setScheme}>
-                  <SelectTrigger className="bg-muted border-border"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="sepa_core">SEPA Core (EUR)</SelectItem>
-                    <SelectItem value="ach">ACH Transfer (USD)</SelectItem>
-                    <SelectItem value="bacs">BACS (GBP)</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  {scheme === 'sepa_core' && 'SEPA direct debit for EUR collections across Europe.'}
-                  {scheme === 'ach' && 'ACH direct debit for USD collections in the United States.'}
-                  {scheme === 'bacs' && 'BACS direct debit for GBP collections in the UK.'}
-                </p>
-              </div>
-              <Button className="w-full" onClick={handleCreate} disabled={createMandate.isPending}>
-                {createMandate.isPending ? 'Creating...' : 'Create Mandate'}
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {(mandates ?? []).length === 0 ? (
