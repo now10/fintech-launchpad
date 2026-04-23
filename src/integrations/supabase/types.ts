@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_log: {
+        Row: {
+          action: string
+          actor_email: string | null
+          actor_id: string | null
+          business_id: string | null
+          created_at: string
+          id: string
+          metadata: Json
+          resource_id: string | null
+          resource_type: string
+        }
+        Insert: {
+          action: string
+          actor_email?: string | null
+          actor_id?: string | null
+          business_id?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json
+          resource_id?: string | null
+          resource_type: string
+        }
+        Update: {
+          action?: string
+          actor_email?: string | null
+          actor_id?: string | null
+          business_id?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json
+          resource_id?: string | null
+          resource_type?: string
+        }
+        Relationships: []
+      }
       bank_accounts: {
         Row: {
           bank_name: string
@@ -212,6 +248,51 @@ export type Database = {
           },
         ]
       }
+      mandate_authorization_tokens: {
+        Row: {
+          business_id: string
+          created_at: string
+          customer_email: string
+          customer_id: string | null
+          customer_name: string
+          expires_at: string
+          id: string
+          mandate_id: string | null
+          scheme: string
+          status: string
+          token: string
+          used_at: string | null
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          customer_email: string
+          customer_id?: string | null
+          customer_name: string
+          expires_at?: string
+          id?: string
+          mandate_id?: string | null
+          scheme?: string
+          status?: string
+          token: string
+          used_at?: string | null
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          customer_email?: string
+          customer_id?: string | null
+          customer_name?: string
+          expires_at?: string
+          id?: string
+          mandate_id?: string | null
+          scheme?: string
+          status?: string
+          token?: string
+          used_at?: string | null
+        }
+        Relationships: []
+      }
       mandates: {
         Row: {
           business_id: string
@@ -261,6 +342,7 @@ export type Database = {
           created_at: string
           currency: string
           customer_id: string
+          end_date: string | null
           frequency: string
           id: string
           mandate_id: string | null
@@ -274,6 +356,7 @@ export type Database = {
           created_at?: string
           currency?: string
           customer_id: string
+          end_date?: string | null
           frequency?: string
           id?: string
           mandate_id?: string | null
@@ -287,6 +370,7 @@ export type Database = {
           created_at?: string
           currency?: string
           customer_id?: string
+          end_date?: string | null
           frequency?: string
           id?: string
           mandate_id?: string | null
@@ -524,6 +608,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_admin: { Args: { _user_id: string }; Returns: boolean }
       set_gocardless_token: {
         Args: { _business_id: string; _token: string }
         Returns: undefined
