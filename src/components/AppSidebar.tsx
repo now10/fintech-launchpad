@@ -23,8 +23,10 @@ const navItems = [
 
 const AppSidebar = () => {
   const { logout, user } = useAuth();
+  const { data: isAdmin } = useIsAdmin();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
+  const items = isAdmin ? [...navItems, { label: 'Admin', icon: Shield, path: '/admin' }] : navItems;
 
   return (
     <aside className={cn(
@@ -39,7 +41,7 @@ const AppSidebar = () => {
       </div>
 
       <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
-        {navItems.map(item => {
+        {items.map(item => {
           const active = location.pathname === item.path;
           return (
             <Link
