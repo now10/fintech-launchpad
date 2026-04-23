@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useMandates, useCustomers, useCreateMandate, useDeleteMandate } from '@/hooks/useBusinessData';
+import { useCreateMandateLink } from '@/hooks/useSubscriptions';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { Plus, ExternalLink, Loader2, Trash2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Plus, ExternalLink, Loader2, Trash2, Link2, Copy, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 
@@ -21,9 +23,34 @@ const MandatesPage = () => {
   const { data: customers } = useCustomers();
   const createMandate = useCreateMandate();
   const deleteMandate = useDeleteMandate();
+  const createLink = useCreateMandateLink();
   const [open, setOpen] = useState(false);
+  const [linkOpen, setLinkOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState('');
   const [scheme, setScheme] = useState('sepa_core');
+  const [linkEmail, setLinkEmail] = useState('');
+  const [linkName, setLinkName] = useState('');
+  const [generatedLink, setGeneratedLink] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const handleGenerateLink = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!linkEmail || !linkName) { toast.error('Name and email required'); return; }
+    try {
+      const r = await createLink.mutateAsync({ customer_email: linkEmail, customer_name: linkName, scheme });
+      setGeneratedLink(r.url);
+      toast.success('Authorization link created');
+    } catch (err: any) {
+      toast.error('Failed', { description: err.message });
+    }
+  };
+
+  const handleCopy = () => {
+    if (!generatedLink) return;
+    navigator.clipboard.writeText(generatedLink);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
 
   const handleCreate = async () => {
     if (!selectedCustomer) {
