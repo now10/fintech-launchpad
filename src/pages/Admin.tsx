@@ -1,10 +1,22 @@
-import { useState } from 'react';
-import { useIsAdmin, useAdminBusinesses, useAdminWebhookEvents, useAdminFailedPayments, useAuditLog } from '@/hooks/useAdmin';
+import {
+  useIsAdmin,
+  useAdminBusinesses,
+  useAdminWebhookEvents,
+  useAdminFailedPayments,
+  useAuditLog,
+  useAdminPendingBankAccounts,
+  useAdminPendingMandates,
+  useAdminPendingPayouts,
+  useAdminUpdateBankAccount,
+  useAdminUpdateMandate,
+  useAdminUpdatePayout,
+} from '@/hooks/useAdmin';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Shield, AlertTriangle, Building2, Webhook, ScrollText, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { Navigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 const AdminPage = () => {
   const { data: isAdmin, isLoading: checking } = useIsAdmin();
@@ -12,6 +24,66 @@ const AdminPage = () => {
   const { data: webhooks } = useAdminWebhookEvents();
   const { data: failed } = useAdminFailedPayments();
   const { data: audit } = useAuditLog();
+  const { data: bankAccounts } = useAdminPendingBankAccounts();
+  const { data: mandates } = useAdminPendingMandates();
+  const { data: payouts } = useAdminPendingPayouts();
+  const approveBankAccount = useAdminUpdateBankAccount();
+  const approveMandate = useAdminUpdateMandate();
+  const approvePayout = useAdminUpdatePayout();
+
+  const handleApproveBankAccount = async (id: string) => {
+    try {
+      await approveBankAccount.mutateAsync({ id, changes: { is_verified: true, status: 'verified' } });
+      toast.success('Bank account approved');
+    } catch (err: any) {
+      toast.error('Failed to approve', { description: err.message });
+    }
+  };
+
+  const handleRejectBankAccount = async (id: string) => {
+    try {
+      await approveBankAccount.mutateAsync({ id, changes: { status: 'failed' } });
+      toast.success('Bank account rejected');
+    } catch (err: any) {
+      toast.error('Failed to reject', { description: err.message });
+    }
+  };
+
+  const handleApproveMandate = async (id: string) => {
+    try {
+      await approveMandate.mutateAsync({ id, changes: { status: 'active' } });
+      toast.success('Mandate approved');
+    } catch (err: any) {
+      toast.error('Failed to approve', { description: err.message });
+    }
+  };
+
+  const handleRejectMandate = async (id: string) => {
+    try {
+      await approveMandate.mutateAsync({ id, changes: { status: 'cancelled' } });
+      toast.success('Mandate rejected');
+    } catch (err: any) {
+      toast.error('Failed to reject', { description: err.message });
+    }
+  };
+
+  const handleApprovePayout = async (id: string) => {
+    try {
+      await approvePayout.mutateAsync({ id, changes: { status: 'processing' } });
+      toast.success('Payout approved');
+    } catch (err: any) {
+      toast.error('Failed to approve', { description: err.message });
+    }
+  };
+
+  const handleRejectPayout = async (id: string) => {
+    try {
+      await approvePayout.mutateAsync({ id, changes: { status: 'failed' } });
+      toast.success('Payout rejected');
+    } catch (err: any) {
+      toast.error('Failed to reject', { description: err.message });
+    }
+  };
 
   if (checking) {
     return <div className="flex justify-center p-12"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
@@ -49,6 +121,7 @@ const AdminPage = () => {
           <TabsTrigger value="webhooks">Webhook events</TabsTrigger>
           <TabsTrigger value="failed">Failed payments</TabsTrigger>
           <TabsTrigger value="businesses">Businesses</TabsTrigger>
+          <TabsTrigger value="approvals">Approvals</TabsTrigger>
           <TabsTrigger value="audit">Audit log</TabsTrigger>
         </TabsList>
 
@@ -115,6 +188,98 @@ const AdminPage = () => {
                     <td className="py-2 px-2 text-xs text-muted-foreground">{new Date(b.created_at).toLocaleDateString()}</td>
                   </tr>
                 ))}
+              </tbody>
+            </table>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="approvals" className="mt-4 space-y-6">
+          <div className="glass-card rounded-xl p-4 overflow-x-auto">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-lg font-semibold">Pending Bank Accounts</h2>
+                <p className="text-sm text-muted-foreground">Approve or reject newly added IBAN accounts.</p>
+              </div>
+            </div>
+            <table className="w-full text-sm">
+              <thead><tr className="text-left text-xs text-muted-foreground border-b border-border">
+                <th className="py-2 px-2">Business</th><th className="py-2 px-2">IBAN</th><th className="py-2 px-2">Status</th><th className="py-2 px-2">Actions</th>
+              </tr></thead>
+              <tbody>
+                {(bankAccounts ?? []).map((item: any) => (
+                  <tr key={item.id} className="border-b border-border last:border-0">
+                    <td className="py-2 px-2 text-xs text-muted-foreground">{item.businesses?.name ?? item.business_id}</td>
+                    <td className="py-2 px-2 font-mono">{item.iban}</td>
+                    <td className="py-2 px-2"><Badge variant={item.status === 'pending' ? 'secondary' : item.status === 'verified' ? 'default' : 'destructive'}>{item.status}</Badge></td>
+                    <td className="py-2 px-2 flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => handleApproveBankAccount(item.id)} disabled={approveBankAccount.isPending}>Approve</Button>
+                      <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleRejectBankAccount(item.id)} disabled={approveBankAccount.isPending}>Reject</Button>
+                    </td>
+                  </tr>
+                ))}
+                {(bankAccounts ?? []).length === 0 && (
+                  <tr><td colSpan={4} className="py-6 text-center text-muted-foreground">No pending bank accounts.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="glass-card rounded-xl p-4 overflow-x-auto">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-lg font-semibold">Pending Mandates</h2>
+                <p className="text-sm text-muted-foreground">Approve or reject new direct debit mandates.</p>
+              </div>
+            </div>
+            <table className="w-full text-sm">
+              <thead><tr className="text-left text-xs text-muted-foreground border-b border-border">
+                <th className="py-2 px-2">Customer</th><th className="py-2 px-2">Business</th><th className="py-2 px-2">Status</th><th className="py-2 px-2">Actions</th>
+              </tr></thead>
+              <tbody>
+                {(mandates ?? []).map((item: any) => (
+                  <tr key={item.id} className="border-b border-border last:border-0">
+                    <td className="py-2 px-2 text-xs text-muted-foreground">{item.customers?.name ?? 'Unknown'} / {item.customers?.email ?? '—'}</td>
+                    <td className="py-2 px-2 text-xs text-muted-foreground">{item.businesses?.name ?? item.business_id}</td>
+                    <td className="py-2 px-2"><Badge variant={item.status === 'pending' ? 'secondary' : item.status === 'active' ? 'default' : 'destructive'}>{item.status}</Badge></td>
+                    <td className="py-2 px-2 flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => handleApproveMandate(item.id)} disabled={approveMandate.isPending}>Approve</Button>
+                      <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleRejectMandate(item.id)} disabled={approveMandate.isPending}>Reject</Button>
+                    </td>
+                  </tr>
+                ))}
+                {(mandates ?? []).length === 0 && (
+                  <tr><td colSpan={4} className="py-6 text-center text-muted-foreground">No pending mandates.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="glass-card rounded-xl p-4 overflow-x-auto">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-lg font-semibold">Pending Payouts</h2>
+                <p className="text-sm text-muted-foreground">Approve or reject requested payouts.</p>
+              </div>
+            </div>
+            <table className="w-full text-sm">
+              <thead><tr className="text-left text-xs text-muted-foreground border-b border-border">
+                <th className="py-2 px-2">Amount</th><th className="py-2 px-2">Method</th><th className="py-2 px-2">Status</th><th className="py-2 px-2">Actions</th>
+              </tr></thead>
+              <tbody>
+                {(payouts ?? []).map((item: any) => (
+                  <tr key={item.id} className="border-b border-border last:border-0">
+                    <td className="py-2 px-2 font-mono">{item.currency === 'USD' ? '$' : '€'}{Number(item.amount).toLocaleString()}</td>
+                    <td className="py-2 px-2 text-xs text-muted-foreground">{item.method}</td>
+                    <td className="py-2 px-2"><Badge variant={item.status === 'pending' ? 'secondary' : item.status === 'processing' ? 'default' : 'destructive'}>{item.status}</Badge></td>
+                    <td className="py-2 px-2 flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => handleApprovePayout(item.id)} disabled={approvePayout.isPending}>Approve</Button>
+                      <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleRejectPayout(item.id)} disabled={approvePayout.isPending}>Reject</Button>
+                    </td>
+                  </tr>
+                ))}
+                {(payouts ?? []).length === 0 && (
+                  <tr><td colSpan={4} className="py-6 text-center text-muted-foreground">No pending payouts.</td></tr>
+                )}
               </tbody>
             </table>
           </div>

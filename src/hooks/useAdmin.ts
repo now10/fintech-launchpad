@@ -87,3 +87,78 @@ export function useAuditLog() {
     enabled: !!isAdmin,
   });
 }
+
+export function useAdminPendingBankAccounts() {
+  const { data: isAdmin } = useIsAdmin();
+  return useQuery({
+    queryKey: ['admin', 'pending_bank_accounts'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('bank_accounts')
+        .select('*, businesses(name)')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!isAdmin,
+  });
+}
+
+export function useAdminPendingMandates() {
+  const { data: isAdmin } = useIsAdmin();
+  return useQuery({
+    queryKey: ['admin', 'pending_mandates'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('mandates')
+        .select('*, customers(name, email), businesses(name)')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!isAdmin,
+  });
+}
+
+export function useAdminPendingPayouts() {
+  const { data: isAdmin } = useIsAdmin();
+  return useQuery({
+    queryKey: ['admin', 'pending_payouts'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('payouts')
+        .select('*')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!isAdmin,
+  });
+}
+
+function useAdminUpdateRow(table: string, queryKey: string[]) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { id: string; changes: Record<string, unknown> }) => {
+      const { data, error } = await supabase.from(table).update(input.changes).eq('id', input.id).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey }),
+  });
+}
+
+export function useAdminUpdateBankAccount() {
+  return useAdminUpdateRow('bank_accounts', ['admin', 'pending_bank_accounts']);
+}
+
+export function useAdminUpdateMandate() {
+  return useAdminUpdateRow('mandates', ['admin', 'pending_mandates']);
+}
+
+export function useAdminUpdatePayout() {
+  return useAdminUpdateRow('payouts', ['admin', 'pending_payouts']);
+}
