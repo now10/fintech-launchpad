@@ -162,3 +162,24 @@ export function useAdminUpdateMandate() {
 export function useAdminUpdatePayout() {
   return useAdminUpdateRow('payouts', ['admin', 'pending_payouts']);
 }
+
+export function useAdminPendingCustomers() {
+  const { data: isAdmin } = useIsAdmin();
+  return useQuery({
+    queryKey: ['admin', 'pending_customers'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('customers')
+        .select('*, businesses(name)')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!isAdmin,
+  });
+}
+
+export function useAdminUpdateCustomer() {
+  return useAdminUpdateRow('customers', ['admin', 'pending_customers']);
+}

@@ -7,9 +7,11 @@ import {
   useAdminPendingBankAccounts,
   useAdminPendingMandates,
   useAdminPendingPayouts,
+  useAdminPendingCustomers,
   useAdminUpdateBankAccount,
   useAdminUpdateMandate,
   useAdminUpdatePayout,
+  useAdminUpdateCustomer,
 } from '@/hooks/useAdmin';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -27,9 +29,11 @@ const AdminPage = () => {
   const { data: bankAccounts } = useAdminPendingBankAccounts();
   const { data: mandates } = useAdminPendingMandates();
   const { data: payouts } = useAdminPendingPayouts();
+  const { data: customers } = useAdminPendingCustomers();
   const approveBankAccount = useAdminUpdateBankAccount();
   const approveMandate = useAdminUpdateMandate();
   const approvePayout = useAdminUpdatePayout();
+  const approveCustomer = useAdminUpdateCustomer();
 
   const handleApproveBankAccount = async (id: string) => {
     try {
@@ -80,6 +84,24 @@ const AdminPage = () => {
     try {
       await approvePayout.mutateAsync({ id, changes: { status: 'failed' } });
       toast.success('Payout rejected');
+    } catch (err: any) {
+      toast.error('Failed to reject', { description: err.message });
+    }
+  };
+
+  const handleApproveCustomer = async (id: string) => {
+    try {
+      await approveCustomer.mutateAsync({ id, changes: { is_verified: true, status: 'active' } });
+      toast.success('Customer approved');
+    } catch (err: any) {
+      toast.error('Failed to approve', { description: err.message });
+    }
+  };
+
+  const handleRejectCustomer = async (id: string) => {
+    try {
+      await approveCustomer.mutateAsync({ id, changes: { status: 'inactive' } });
+      toast.success('Customer rejected');
     } catch (err: any) {
       toast.error('Failed to reject', { description: err.message });
     }
@@ -279,6 +301,37 @@ const AdminPage = () => {
                 ))}
                 {(payouts ?? []).length === 0 && (
                   <tr><td colSpan={4} className="py-6 text-center text-muted-foreground">No pending payouts.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="glass-card rounded-xl p-4 overflow-x-auto">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-lg font-semibold">Pending Customers</h2>
+                <p className="text-sm text-muted-foreground">Approve or reject newly registered customers.</p>
+              </div>
+            </div>
+            <table className="w-full text-sm">
+              <thead><tr className="text-left text-xs text-muted-foreground border-b border-border">
+                <th className="py-2 px-2">Name</th><th className="py-2 px-2">Email</th><th className="py-2 px-2">Business</th><th className="py-2 px-2">Status</th><th className="py-2 px-2">Actions</th>
+              </tr></thead>
+              <tbody>
+                {(customers ?? []).map((item: any) => (
+                  <tr key={item.id} className="border-b border-border last:border-0">
+                    <td className="py-2 px-2 text-foreground">{item.name}</td>
+                    <td className="py-2 px-2 text-muted-foreground">{item.email}</td>
+                    <td className="py-2 px-2 text-xs text-muted-foreground">{item.businesses?.name ?? item.business_id}</td>
+                    <td className="py-2 px-2"><Badge variant={item.status === 'pending' ? 'secondary' : item.status === 'active' ? 'default' : 'destructive'}>{item.status}</Badge></td>
+                    <td className="py-2 px-2 flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => handleApproveCustomer(item.id)} disabled={approveCustomer.isPending}>Approve</Button>
+                      <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleRejectCustomer(item.id)} disabled={approveCustomer.isPending}>Reject</Button>
+                    </td>
+                  </tr>
+                ))}
+                {(customers ?? []).length === 0 && (
+                  <tr><td colSpan={5} className="py-6 text-center text-muted-foreground">No pending customers.</td></tr>
                 )}
               </tbody>
             </table>
